@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cognix_image_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cognix_image_recognition_db
+      POSTGRES_USER: cognix_cv_user
+      POSTGRES_PASSWORD: cognix_cv_secure_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_cv_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cognix_cv_user -d cognix_image_recognition_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cognix_image_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_cv_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  inference_service:
+    build:
+      context: ./inference
+      dockerfile: Dockerfile
+    container_name: cognix_image_inference
+    restart: unless-stopped
+    environment:
+      - INFERENCE_SERVICE_PORT=8001
+      - INTERNAL_SERVICE_KEY=cognix_internal_cv_secret_token_32chars_min!
+      - DEVICE=cpu
+    ports:
+      - "8001:8001"
+    volumes:
+      - model_cache:/root/.cache/torch
+
+  main_api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cognix_image_main_api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://cognix_cv_user:cognix_cv_secure_pass@postgres:5432/cognix_image_recognition_db
+      - REDIS_URL=redis://redis:6379/0
+      - INFERENCE_SERVICE_URL=http://inference_service:8001
+      - INTERNAL_SERVICE_KEY=cognix_internal_cv_secret_token_32chars_min!
+      - JWT_SECRET=cognix_cv_jwt_secret_key_change_in_production_32chars!
+      - STORAGE_LOCAL_PATH=/app/storage
+    volumes:
+      - image_storage:/app/storage
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      inference_service:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cognix_image_frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8002/api/v1
+    depends_on:
+      - main_api
+
+volumes:
+  postgres_cv_data:
+  redis_cv_data:
+  image_storage:
+  model_cache:
