@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cognix-recsys-db
+    environment:
+      POSTGRES_DB: cognix_recommendation_db
+      POSTGRES_USER: cognix_user
+      POSTGRES_PASSWORD: cognix_password_secure_2026
+    ports:
+      - "5434:5432"
+    volumes:
+      - recsys_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cognix_user -d cognix_recommendation_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cognix-recsys-redis
+    ports:
+      - "6381:6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: cognix-recsys-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://cognix_user:cognix_password_secure_2026@db:5432/cognix_recommendation_db
+      SECRET_KEY: cognix-recsys-secret-key-production-2026
+      REDIS_URL: redis://redis:6379/0
+      MLFLOW_TRACKING_URI: sqlite:///mlruns/mlflow.db
+    ports:
+      - "8002:8002"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cognix-recsys-frontend
+    ports:
+      - "3002:3002"
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://backend:8002
+    depends_on:
+      - backend
+
+volumes:
+  recsys_pgdata:

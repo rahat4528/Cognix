@@ -1,0 +1,52 @@
+{
+  "dataset_metadata": {
+    "total_items": 96,
+    "total_interactions": 2500,
+    "train_interactions": 1500,
+    "val_interactions": 500,
+    "test_interactions": 500,
+    "test_eval_users": 50
+  },
+  "temporal_split": {
+    "train_ratio": 0.6,
+    "val_ratio": 0.2,
+    "test_ratio": 0.2,
+    "train_cutoff_timestamp": 1792175189.0628116,
+    "test_start_timestamp": 1793730955.2394097
+  },
+  "benchmarks": {
+    "Popularity Baseline": {
+      "ndcg@10": 0.1208,
+      "recall@10": 0.1362,
+      "precision@10": 0.114,
+      "map@10": 0.0439,
+      "hit_rate@10": 0.78,
+      "catalog_coverage": 0.1042
+    },
+    "Collaborative Filtering (SVD)": {
+      "ndcg@10": 0.1241,
+      "recall@10": 0.1245,
+      "precision@10": 0.114,
+      "map@10": 0.05,
+      "hit_rate@10": 0.64,
+      "catalog_coverage": 0.9688
+    },
+    "Content-Based (TF-IDF)": {
+      "ndcg@10": 0.1562,
+      "recall@10": 0.1531,
+      "precision@10": 0.144,
+      "map@10": 0.0639,
+      "hit_rate@10": 0.76,
+      "catalog_coverage": 0.8333
+    },
+    "Hybrid Ensemble": {
+      "ndcg@10": 0.1426,
+      "recall@10": 0.141,
+      "precision@10": 0.13,
+      "map@10": 0.059,
+      "hit_rate@10": 0.74,
+      "catalog_coverage": 0.9688
+    }
+  },
+  "elapsed_seconds": 0.419
+}
